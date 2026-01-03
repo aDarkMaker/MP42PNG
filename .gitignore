@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+*_frames_temp/
+*_frames.zip
+*.zip
+*.png
+*.mp4
+/output/*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
