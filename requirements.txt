@@ -3,6 +3,9 @@ mdurl==0.1.2
 numpy==2.2.6
 opencv-python==4.12.0.88
 pip==25.3
+prompt-toolkit==3.0.52
 pygments==2.19.2
+questionary==2.1.1
 rich==14.2.0
 tqdm==4.67.1
+wcwidth==0.2.14

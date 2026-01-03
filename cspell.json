@@ -10,7 +10,9 @@
         "opencv",
         "pycache",
         "pygments",
+        "qmark",
         "tqdm",
-        "venv"
+        "venv",
+        "wcwidth"
     ]
 }
