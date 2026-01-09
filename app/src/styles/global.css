@@ -3,6 +3,10 @@
 * {
 	box-sizing: border-box;
 	font-family: 'Buding', sans-serif;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
 }
 
 @font-face {

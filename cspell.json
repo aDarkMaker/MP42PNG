@@ -1,6 +1,7 @@
 {
     "ignorePaths": [
-        ".venv/*"
+        ".venv/*",
+        "requirements.txt"
     ],
     "words": [
         "arcname",

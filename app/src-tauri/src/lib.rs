@@ -224,11 +224,47 @@ fn find_main_py(app: &tauri::AppHandle) -> Option<PathBuf> {
 }
 
 #[tauri::command]
-async fn get_video_info(_video_path: String) -> Result<VideoInfo, String> {
+async fn get_video_info(app: tauri::AppHandle, video_path: String) -> Result<VideoInfo, String> {
+    let _main_py = find_main_py(&app).ok_or_else(|| "找不到 main.py 文件".to_string())?;
+    
+    let python_cmd = if cfg!(target_os = "windows") {
+        "python"
+    } else {
+        "python3"
+    };
+    
+    // 我们在 main.py 中已经有 cv2 了，直接写一个小脚本来获取信息
+    let script = format!(
+        "import cv2; cap = cv2.VideoCapture(r'{}'); \
+         fps = cap.get(cv2.CAP_PROP_FPS); \
+         total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)); \
+         dur = total / fps if fps > 0 else 0; \
+         print(f'{{dur}},{{fps}},{{total}}'); cap.release()",
+        video_path
+    );
+
+    let output = tokio::process::Command::new(python_cmd)
+        .arg("-c")
+        .arg(script)
+        .output()
+        .await
+        .map_err(|e| format!("执行 Python 失败: {}", e))?;
+
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    }
+
+    let out = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let parts: Vec<&str> = out.split(',').collect();
+    
+    if parts.len() < 3 {
+        return Err("解析视频信息失败".to_string());
+    }
+
     Ok(VideoInfo {
-        duration: 0.0,
-        fps: 30.0,
-        total_frames: 0,
+        duration: parts[0].parse().unwrap_or(0.0),
+        fps: parts[1].parse().unwrap_or(30.0),
+        total_frames: parts[2].parse().unwrap_or(0),
     })
 }
 

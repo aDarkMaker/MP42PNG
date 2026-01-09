@@ -10,6 +10,7 @@ import '../styles/VideoToPngPage.css';
 export function VideoToPngPage() {
 	const [currentStep, setCurrentStep] = useState<ConversionStep>('select');
 	const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
+	const [videoPath, setVideoPath] = useState<string | null>(null);
 	const [videoPreviewUrl, setVideoPreviewUrl] = useState<string>('');
 	const [config, setConfig] = useState<VideoConfig>({
 		fps: 1,
@@ -33,9 +34,9 @@ export function VideoToPngPage() {
 		return `${mins}:${secs.toString().padStart(2, '0')}`;
 	};
 
-	const calculateFrames = async (file: File, fps: number) => {
+	const calculateFrames = async (input: File | string, fps: number) => {
 		try {
-			const videoInfo = await VideoConverter.getVideoInfo(file);
+			const videoInfo = await VideoConverter.getVideoInfo(input);
 			setVideoDuration(videoInfo.duration);
 			const frames = VideoConverter.calculateFrameCount(videoInfo.duration, fps);
 			setTotalFrames(frames);
@@ -83,14 +84,14 @@ export function VideoToPngPage() {
 	};
 
 	const handleStartConversion = async () => {
-		if (!selectedVideo) return;
+		if (!selectedVideo && !videoPath) return;
 		
 		setCurrentStep('converting');
 		setProgress(0);
 		
 		try {
 			const result = await VideoConverter.convert(
-				selectedVideo,
+				selectedVideo || videoPath!,
 				config,
 				(progress) => {
 					setProgress(progress.percentage);
@@ -145,6 +146,7 @@ export function VideoToPngPage() {
 			setShowSuccess(false);
 			setCurrentStep('select');
 			setSelectedVideo(null);
+			setVideoPath(null);
 			setVideoPreviewUrl('');
 			setTotalFrames(null);
 			setVideoDuration(0);
@@ -160,14 +162,51 @@ export function VideoToPngPage() {
 		setPreviewPaths([]);
 		setCurrentStep('select');
 		setSelectedVideo(null);
+		setVideoPath(null);
 	};
 
 	// 当 FPS 改变时重新计算帧数
 	useEffect(() => {
-		if (selectedVideo && config.fps > 0) {
-			calculateFrames(selectedVideo, config.fps);
+		if ((selectedVideo || videoPath) && config.fps > 0) {
+			calculateFrames(selectedVideo || videoPath!, config.fps);
 		}
 	}, [config.fps]);
+
+	// 添加窗口级拖拽监听
+	useEffect(() => {
+		let unlisten: (() => void) | undefined;
+		
+		const setupListener = async () => {
+			const { listen } = await import('@tauri-apps/api/event');
+			const { getCurrentWebview } = await import('@tauri-apps/api/webview');
+			
+			// Tauri 2.0 监听拖拽
+			unlisten = await listen<{ paths: string[] }>('tauri://drag-drop', async (event) => {
+				const path = event.payload.paths[0];
+				if (path && (path.endsWith('.mp4') || path.endsWith('.mov') || path.endsWith('.avi') || path.endsWith('.mkv'))) {
+					setVideoPath(path);
+					setSelectedVideo(null); // 拖拽使用的是路径，不是 File 对象
+					
+					// 尝试设置预览
+					setVideoPreviewUrl(convertFileSrc(path));
+					
+					const fileName = path.split(/[/\\]/).pop() || '';
+					setConfig({
+						...config,
+						outputName: fileName.replace(/\.[^/.]+$/, '') + '_frames.zip',
+					});
+					
+					setCurrentStep('config');
+					await calculateFrames(path, config.fps);
+				}
+			});
+		};
+
+		setupListener();
+		return () => {
+			if (unlisten) unlisten();
+		};
+	}, []);
 
 	return (
 		<div className="page">
@@ -194,12 +233,14 @@ export function VideoToPngPage() {
 				</div>
 			)}
 
-			{currentStep === 'config' && selectedVideo && (
+			{currentStep === 'config' && (selectedVideo || videoPath) && (
 				<div className="section">
 					<div className="card">
 						<h3 className="cardTitle">
 							<img src={selectFileIcon} alt="视频" className="cardIcon" />
-							<span className="videoName">{selectedVideo.name.replace(/\.[^/.]+$/, '')}</span>
+							<span className="videoName">
+								{(selectedVideo?.name || videoPath?.split(/[/\\]/).pop() || '').replace(/\.[^/.]+$/, '')}
+							</span>
 						</h3>
 						<div className="videoPreview">
 							<video 
@@ -209,12 +250,10 @@ export function VideoToPngPage() {
 								className="video"
 								onLoadedMetadata={(e) => {
 									const video = e.currentTarget;
-									if (selectedVideo && config.fps > 0) {
-										const duration = video.duration;
-										setVideoDuration(duration);
-										const frames = VideoConverter.calculateFrameCount(duration, config.fps);
-										setTotalFrames(frames);
-									}
+									const duration = video.duration;
+									setVideoDuration(duration);
+									const frames = VideoConverter.calculateFrameCount(duration, config.fps);
+									setTotalFrames(frames);
 								}}
 							/>
 						</div>

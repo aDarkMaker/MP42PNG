@@ -30,12 +30,20 @@ interface VideoInfo {
 }
 
 export class VideoConverter {
-	static async getVideoInfo(videoFile: File): Promise<VideoInfo> {
+	static async getVideoInfo(videoInput: File | string): Promise<VideoInfo> {
+		if (typeof videoInput === 'string') {
+			try {
+				return await invoke<VideoInfo>('get_video_info', { videoPath: videoInput });
+			} catch (error) {
+				throw new Error(`获取视频信息失败: ${error}`);
+			}
+		}
+
 		try {
 			return new Promise((resolve, reject) => {
 				const video = document.createElement('video');
 				video.preload = 'metadata';
-				video.src = URL.createObjectURL(videoFile);
+				video.src = URL.createObjectURL(videoInput);
 				
 				video.onloadedmetadata = () => {
 					URL.revokeObjectURL(video.src);
@@ -65,16 +73,21 @@ export class VideoConverter {
 	}
 
 	static async convert(
-		videoFile: File,
+		videoInput: File | string,
 		config: VideoConfig,
 		onProgress?: (progress: ConversionProgress) => void
 	): Promise<ProcessedVideo> {
 		try {
 			const { listen } = await import('@tauri-apps/api/event');
-			const videoInfo = await this.getVideoInfo(videoFile);
+			const videoInfo = await this.getVideoInfo(videoInput);
 			const totalFrames = this.calculateFrameCount(videoInfo.duration, config.fps);
 			
-			const videoPath = await this.saveVideoToTemp(videoFile);
+			let videoPath: string;
+			if (typeof videoInput === 'string') {
+				videoPath = videoInput;
+			} else {
+				videoPath = await this.saveVideoToTemp(videoInput);
+			}
 			
 			const conversionConfig: ConversionConfig = {
 				input_path: videoPath,
