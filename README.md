@@ -27,7 +27,7 @@
 
 ## 3. 下载方式
 
-- **[GitHub Releases](https://github.com/your-username/MP42PNG/releases)**: 侧边下载即可，暂未支持其他渠道~
+- **[GitHub Releases](https://github.com/aDarkMaker/MP42PNG/releases)**: 侧边下载即可，暂未支持其他渠道~
 
 ## 4. 功能介绍
 
