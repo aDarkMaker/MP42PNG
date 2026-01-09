@@ -170,14 +170,23 @@ export class VideoConverter {
 		}
 	}
 
-	static async exportZip(tempDir: string, onProgress?: (percentage: number) => void): Promise<boolean> {
+	static async exportZip(tempDir: string, onProgress?: (percentage: number) => void, forcedPath?: string): Promise<boolean> {
 		try {
 			const { listen } = await import('@tauri-apps/api/event');
+			const { join } = await import('@tauri-apps/api/path');
 			
-			const destination = await save({
-				filters: [{ name: 'ZIP Archive', extensions: ['zip'] }],
-				defaultPath: 'frames.zip',
-			});
+			let destination: string | null = null;
+
+			if (forcedPath) {
+				// 获取当前配置的文件名
+				const savedOutputName = localStorage.getItem('last_output_name') || 'frames.zip';
+				destination = await join(forcedPath, savedOutputName);
+			} else {
+				destination = await save({
+					filters: [{ name: 'ZIP Archive', extensions: ['zip'] }],
+					defaultPath: 'frames.zip',
+				});
+			}
 			
 			if (destination) {
 				let unlisten: (() => void) | undefined;
@@ -199,6 +208,7 @@ export class VideoConverter {
 			}
 			return false;
 		} catch (error) {
+			console.error('Export failed:', error);
 			return false;
 		}
 	}

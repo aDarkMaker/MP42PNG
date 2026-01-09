@@ -5,12 +5,14 @@ import '../styles/Layout.css';
 
 interface LayoutProps {
 	children: ReactNode;
+	activeTab: string;
+	onTabChange: (id: string) => void;
 }
 
-export function Layout({ children }: LayoutProps) {
+export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
 	return (
 		<div className="layout-container">
-			<Sidebar />
+			<Sidebar activeTab={activeTab} onTabChange={onTabChange} />
 			<div className="layout-content">
 				<TopBar />
 				<main className="layout-main">

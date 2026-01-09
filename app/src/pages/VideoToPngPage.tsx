@@ -4,7 +4,6 @@ import type { VideoConfig, ConversionStep } from '../types';
 import { Button } from '../components/Button';
 import { VideoConverter } from '../utils/converter';
 import selectFileIcon from '../assets/select-file.svg';
-import folderIcon from '../assets/folder.svg';
 import '../styles/VideoToPngPage.css';
 
 export function VideoToPngPage() {
@@ -86,6 +85,9 @@ export function VideoToPngPage() {
 	const handleStartConversion = async () => {
 		if (!selectedVideo && !videoPath) return;
 		
+		// 保存文件名到本地，供自动保存使用
+		localStorage.setItem('last_output_name', config.outputName.endsWith('.zip') ? config.outputName : `${config.outputName}.zip`);
+
 		setCurrentStep('converting');
 		setProgress(0);
 		
@@ -119,9 +121,19 @@ export function VideoToPngPage() {
 		setIsExporting(true);
 		setExportProgress(0);
 		
-		const success = await VideoConverter.exportZip(tempDir, (progress) => {
-			setExportProgress(progress);
-		});
+		const autoSaveEnabled = localStorage.getItem('auto_save_enabled') === 'true';
+		const defaultPath = localStorage.getItem('default_download_path');
+		
+		let success = false;
+		if (autoSaveEnabled && defaultPath) {
+			success = await VideoConverter.exportZip(tempDir, (progress) => {
+				setExportProgress(progress);
+			}, defaultPath);
+		} else {
+			success = await VideoConverter.exportZip(tempDir, (progress) => {
+				setExportProgress(progress);
+			});
+		}
 		
 		setIsExporting(false);
 		
@@ -270,8 +282,16 @@ export function VideoToPngPage() {
 									type="number"
 									min="0.1"
 									step="0.1"
-									value={config.fps}
-									onChange={(e) => setConfig({ ...config, fps: parseFloat(e.target.value) || 1 })}
+									value={config.fps || ''}
+									onChange={(e) => {
+										const val = e.target.value;
+										setConfig({ ...config, fps: val === '' ? 0 : parseFloat(val) });
+									}}
+									onBlur={() => {
+										if (!config.fps || config.fps <= 0) {
+											setConfig({ ...config, fps: 1 });
+										}
+									}}
 									className="formInput"
 								/>
 							</div>

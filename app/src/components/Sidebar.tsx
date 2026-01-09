@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import convertIcon from '../assets/convert.svg';
+import settingsIcon from '../assets/settings.svg';
 import logo from '../assets/logo.svg';
 import '../styles/Sidebar.css';
 
@@ -17,11 +18,20 @@ const navItems: NavItem[] = [
 		icon: convertIcon,
 		description: '将手书抽帧为PNG',
 	},
+	{
+		id: 'settings',
+		name: '设置',
+		icon: settingsIcon,
+		description: '配置一些内容'
+	}
 ];
 
-export function Sidebar() {
-	const [activeItem, setActiveItem] = useState('video-to-png');
+interface SidebarProps {
+	activeTab: string;
+	onTabChange: (id: string) => void;
+}
 
+export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
 	return (
 		<aside className="sidebar">
 			<div className="logoSection">
@@ -37,8 +47,8 @@ export function Sidebar() {
 				{navItems.map((item) => (
 					<button
 						key={item.id}
-						onClick={() => setActiveItem(item.id)}
-						className={`navButton ${activeItem === item.id ? 'navButtonActive' : 'navButtonInactive'}`}
+						onClick={() => onTabChange(item.id)}
+						className={`navButton ${activeTab === item.id ? 'navButtonActive' : 'navButtonInactive'}`}
 					>
 						<img src={item.icon} alt={item.name} className="navIcon" />
 						<div className="navContent">
