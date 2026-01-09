@@ -24,7 +24,6 @@ export function VideoToPngPage() {
 	const [isExporting, setIsExporting] = useState(false);
 	const [exportProgress, setExportProgress] = useState(0);
 	const [showSuccess, setShowSuccess] = useState(false);
-	const fileInputRef = useRef<HTMLInputElement>(null);
 	const videoRef = useRef<HTMLVideoElement>(null);
 
 	const formatDuration = (seconds: number): string => {
@@ -45,22 +44,6 @@ export function VideoToPngPage() {
 		}
 	};
 
-	const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-		const file = event.target.files?.[0];
-		if (file && file.type.startsWith('video/')) {
-			setSelectedVideo(file);
-			const url = URL.createObjectURL(file);
-			setVideoPreviewUrl(url);
-			setConfig({
-				...config,
-				outputName: file.name.replace(/\.[^/.]+$/, '') + '_frames.zip',
-			});
-			setCurrentStep('config');
-			// 计算帧数
-			await calculateFrames(file, config.fps);
-		}
-	};
-
 	const handleDrop = async (event: React.DragEvent) => {
 		event.preventDefault();
 		const file = event.dataTransfer.files[0];
@@ -73,7 +56,6 @@ export function VideoToPngPage() {
 				outputName: file.name.replace(/\.[^/.]+$/, '') + '_frames.zip',
 			});
 			setCurrentStep('config');
-			// 计算帧数
 			await calculateFrames(file, config.fps);
 		}
 	};
@@ -85,7 +67,6 @@ export function VideoToPngPage() {
 	const handleStartConversion = async () => {
 		if (!selectedVideo && !videoPath) return;
 		
-		// 保存文件名到本地，供自动保存使用
 		localStorage.setItem('last_output_name', config.outputName.endsWith('.zip') ? config.outputName : `${config.outputName}.zip`);
 
 		setCurrentStep('converting');
@@ -138,7 +119,6 @@ export function VideoToPngPage() {
 		setIsExporting(false);
 		
 		if (success) {
-			// 稍微延迟一下弹出成功界面，让进度条 100% 的状态停留一会儿，体验更自然
 			setTimeout(() => {
 				setShowSuccess(true);
 				setTempDir(null);
@@ -148,7 +128,6 @@ export function VideoToPngPage() {
 	};
 
 	const handleFinish = () => {
-		// 先触发一个淡出状态（通过 CSS 类控制），再进行实际的界面切换
 		const section = document.querySelector('.section');
 		if (section) {
 			section.classList.add('fadeOut');
@@ -177,14 +156,12 @@ export function VideoToPngPage() {
 		setVideoPath(null);
 	};
 
-	// 当 FPS 改变时重新计算帧数
 	useEffect(() => {
 		if ((selectedVideo || videoPath) && config.fps > 0) {
 			calculateFrames(selectedVideo || videoPath!, config.fps);
 		}
 	}, [config.fps]);
 
-	// 添加窗口级拖拽监听
 	useEffect(() => {
 		let unlisten: (() => void) | undefined;
 		
@@ -192,14 +169,12 @@ export function VideoToPngPage() {
 			const { listen } = await import('@tauri-apps/api/event');
 			const { getCurrentWebview } = await import('@tauri-apps/api/webview');
 			
-			// Tauri 2.0 监听拖拽
 			unlisten = await listen<{ paths: string[] }>('tauri://drag-drop', async (event) => {
 				const path = event.payload.paths[0];
 				if (path && (path.endsWith('.mp4') || path.endsWith('.mov') || path.endsWith('.avi') || path.endsWith('.mkv'))) {
 					setVideoPath(path);
-					setSelectedVideo(null); // 拖拽使用的是路径，不是 File 对象
+					setSelectedVideo(null);
 					
-					// 尝试设置预览
 					setVideoPreviewUrl(convertFileSrc(path));
 					
 					const fileName = path.split(/[/\\]/).pop() || '';
@@ -220,6 +195,23 @@ export function VideoToPngPage() {
 		};
 	}, []);
 
+	const handleSelectFile = async () => {
+		const path = await VideoConverter.selectVideo();
+		if (path) {
+			setVideoPath(path);
+			setSelectedVideo(null);
+			setVideoPreviewUrl(convertFileSrc(path));
+			
+			const fileName = path.split(/[/\\]/).pop() || '';
+			setConfig({
+				...config,
+				outputName: fileName.replace(/\.[^/.]+$/, '') + '_frames.zip',
+			});
+			setCurrentStep('config');
+			await calculateFrames(path, config.fps);
+		}
+	};
+
 	return (
 		<div className="page">
 			<div className="header">
@@ -231,17 +223,10 @@ export function VideoToPngPage() {
 					onDrop={handleDrop}
 					onDragOver={handleDragOver}
 					className="dropZone"
-					onClick={() => fileInputRef.current?.click()}
+					onClick={handleSelectFile}
 				>
 					<h3 className="dropTitle">拖拽视频文件到此处</h3>
 					<p className="dropSubtitle">或点击选择文件</p>
-					<input
-						ref={fileInputRef}
-						type="file"
-						accept="video/mp4,video/quicktime,video/*"
-						onChange={handleFileSelect}
-						className="fileInput"
-					/>
 				</div>
 			)}
 
@@ -280,12 +265,12 @@ export function VideoToPngPage() {
 								</label>
 								<input
 									type="number"
-									min="0.1"
-									step="0.1"
+									min="1"
+									step="1"
 									value={config.fps || ''}
 									onChange={(e) => {
 										const val = e.target.value;
-										setConfig({ ...config, fps: val === '' ? 0 : parseFloat(val) });
+										setConfig({ ...config, fps: val === '' ? 0 : parseInt(val, 10) });
 									}}
 									onBlur={() => {
 										if (!config.fps || config.fps <= 0) {

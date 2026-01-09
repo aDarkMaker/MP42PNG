@@ -166,6 +166,13 @@
 	border-radius: 0.5rem;
 	color: white;
 	transition: border-color 0.2s;
+	appearance: textfield;
+}
+
+.formInput::-webkit-outer-spin-button,
+.formInput::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
 }
 
 .formInput:focus {

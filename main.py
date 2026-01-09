@@ -103,9 +103,6 @@ class VideoConverter:
         with zipfile.ZipFile(self.output_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
             for i, f in enumerate(files):
                 zf.write(f, arcname=f.name)
-                # We could output progress for zipping too if needed
-                # progress_val = int((i / len(files)) * 100)
-                # print(f"ZIP_PROGRESS:{progress_val}", flush=True)
 
     def _cleanup(self):
         if hasattr(self, 'temp_dir') and self.temp_dir.exists():
@@ -113,8 +110,9 @@ class VideoConverter:
 
 def main():
     if sys.platform == "win32":
-        import os
-        os.environ["PYTHONIOENCODING"] = "utf-8"
+        import io
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
     parser = argparse.ArgumentParser(description="MP4 to PNG Converter (Backend)")
     parser.add_argument("input", help="Path to the input video file")
@@ -123,10 +121,22 @@ def main():
     parser.add_argument("-k", "--keep", action="store_true", help="Keep temporary PNG files")
     parser.add_argument("--no-zip", action="store_true", help="Only extract frames, do not create ZIP")
     parser.add_argument("--output-dir", help="Directory for temporary and final output")
+    parser.add_argument("--info", action="store_true", help="Get video info (duration, fps, total_frames)")
     
     args = parser.parse_args()
     
     try:
+        if args.info:
+            cap = cv2.VideoCapture(str(args.input))
+            if not cap.isOpened():
+                raise ValueError("无法打开视频文件。")
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            dur = total / fps if fps > 0 else 0
+            print(f"{dur},{fps},{total}", flush=True)
+            cap.release()
+            sys.exit(0)
+
         converter = VideoConverter(
             input_path=args.input,
             output_name=args.output,

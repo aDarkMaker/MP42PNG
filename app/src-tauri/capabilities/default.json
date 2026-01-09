@@ -17,6 +17,14 @@
 		"shell:allow-spawn",
 		"shell:allow-execute",
 		{
+			"identifier": "fs:allow-read-file",
+			"allow": [{ "path": "**" }]
+		},
+		{
+			"identifier": "fs:allow-read-dir",
+			"allow": [{ "path": "**" }]
+		},
+		{
 			"identifier": "shell:allow-spawn",
 			"allow": [
 				{

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
 use std::path::Path;
-use tauri::Emitter;
+use tauri::{Emitter, Manager};
 use walkdir::WalkDir;
 use tauri_plugin_shell::ShellExt;
 
@@ -26,14 +26,21 @@ async fn convert_video(
     app: tauri::AppHandle,
     config: ConversionConfig,
 ) -> Result<ConversionResult, String> {
+    let cache_dir = app.path().app_cache_dir()
+        .map_err(|e| format!("获取缓存目录失败: {}", e))?;
+    let output_dir = cache_dir.join("MP42PNG_output");
+    std::fs::create_dir_all(&output_dir).map_err(|e| format!("创建输出目录失败: {}", e))?;
+
     let sidecar_command = app.shell()
         .sidecar("main")
         .map_err(|e| format!("创建 Sidecar 失败: {}", e))?
+        .env("PYTHONIOENCODING", "utf-8")
         .args([
             &config.input_path,
             "-f", &config.fps.to_string(),
             "-o", &config.output_name,
-            "--no-zip"
+            "--no-zip",
+            "--output-dir", &output_dir.to_string_lossy()
         ]);
 
     let (mut rx, mut _child) = sidecar_command
@@ -43,6 +50,7 @@ async fn convert_video(
     let app_handle = app.clone();
     let stdout_task = tokio::spawn(async move {
         let mut temp_dir = None;
+        let mut stderr_content = String::new();
         let mut unprocessed_text = String::new();
 
         while let Some(event) = rx.recv().await {
@@ -66,13 +74,12 @@ async fn convert_video(
                 }
                 tauri_plugin_shell::process::CommandEvent::Stderr(bytes) => {
                     let err_text = String::from_utf8_lossy(&bytes);
-                    log::error!("Sidecar Stderr: {}", err_text);
+                    stderr_content.push_str(&err_text);
                 }
                 _ => {}
             }
         }
 
-        // 处理最后可能没有换行符的一行
         let final_line = unprocessed_text.trim();
         if !final_line.is_empty() {
             if final_line.starts_with("TEMP_DIR:") {
@@ -80,12 +87,16 @@ async fn convert_video(
             }
         }
         
-        temp_dir
+        (temp_dir, stderr_content)
     });
 
-    let temp_dir_captured = stdout_task.await.map_err(|e| e.to_string())?;
+    let (temp_dir_captured, stderr_captured) = stdout_task.await.map_err(|e| e.to_string())?;
 
-    let temp_path_str = temp_dir_captured.ok_or_else(|| "转换失败: Sidecar 未返回临时目录".to_string())?;
+    if temp_dir_captured.is_none() {
+        return Err(format!("转换失败: Sidecar 未返回临时目录。\n错误详情: {}", stderr_captured));
+    }
+
+    let temp_path_str = temp_dir_captured.unwrap();
     let temp_path = Path::new(&temp_path_str);
 
     let mut frame_paths = Vec::new();
@@ -178,20 +189,22 @@ async fn get_video_info(app: tauri::AppHandle, video_path: String) -> Result<Vid
     let output = app.shell()
         .sidecar("main")
         .map_err(|e| format!("创建 Sidecar 失败: {}", e))?
+        .env("PYTHONIOENCODING", "utf-8")
         .args(["--info", &video_path])
         .output()
         .await
         .map_err(|e| format!("执行 Sidecar 失败: {}", e))?;
 
     if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+        let err_msg = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("获取视频信息失败: {}", err_msg));
     }
 
     let out = String::from_utf8_lossy(&output.stdout).trim().to_string();
     let parts: Vec<&str> = out.split(',').collect();
     
     if parts.len() < 3 {
-        return Err("解析视频信息失败".to_string());
+        return Err(format!("解析视频信息失败，输出内容: {}", out));
     }
 
     Ok(VideoInfo {

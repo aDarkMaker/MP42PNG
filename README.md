@@ -4,7 +4,7 @@
   # ArtBox
   [![Tauri](https://img.shields.io/badge/Developed%20with-Tauri-blue?style=for-the-badge&logo=tauri)](https://tauri.app/)
   ![Platform](https://img.shields.io/badge/platform-Windows-blue?style=for-the-badge)
-  
+
   **一秒12帧也才4K张图要产，洒洒水啦~**
   <br />
 
@@ -21,7 +21,7 @@
 
 ## 2. 快速开始
 
-1. **下载安装包**：从下方的“下载渠道”中选择一个，下载最新的 `ArtBox_x.x.x_x64-setup.exe` 安装文件。
+1. **下载安装包**：下载最新的 `ArtBox_x.x.x_x64-setup.exe` 安装文件。
 2. **安装程序**：双击安装文件，并按照安装向导的提示完成安装。
 3. **运行程序**：安装完成后，从桌面快捷方式启动 `ArtBox` 即可。
 
