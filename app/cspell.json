@@ -4,6 +4,7 @@
     ],
     "words": [
         "arcname",
+        "cdylib",
         "imwrite",
         "mdurl",
         "numpy",
@@ -11,6 +12,10 @@
         "pycache",
         "pygments",
         "qmark",
+        "rlib",
+        "serde",
+        "staticlib",
+        "tauri",
         "tqdm",
         "venv",
         "wcwidth"
