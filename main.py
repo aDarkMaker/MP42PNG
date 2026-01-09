@@ -6,21 +6,25 @@ from pathlib import Path
 from typing import Optional, List
 
 import cv2  # pyright: ignore[reportMissingImports]
+import numpy as np
 from display import Display
 
 class VideoConverter:
     def __init__(self, input_name: Optional[str] = None, output_name: Optional[str] = None, 
-                 fps: Optional[float] = None):
+                    fps: Optional[float] = None, output_dir: Optional[str] = None):
         """
         Initialize the converter with input and output paths.
         """
         self.base_dir = Path(__file__).parent.absolute()
         self.input_dir = self.base_dir / "video"
-        self.output_dir = self.base_dir / "output"
         
-        # Ensure directories exist
+        if output_dir:
+            self.output_dir = Path(output_dir)
+        else:
+            self.output_dir = self.base_dir / "output"
+        
         self.input_dir.mkdir(exist_ok=True)
-        self.output_dir.mkdir(exist_ok=True)
+        self.output_dir.mkdir(exist_ok=True, parents=True)
         
         self.input_path: Optional[Path] = None
         if input_name:
@@ -50,34 +54,34 @@ class VideoConverter:
             return
             
         if output_name:
-            name = output_name if output_name.endswith('.zip') else f"{output_name}.zip"
-            self.output_zip = self.output_dir / name
+            path = Path(output_name)
+            if path.is_absolute():
+                self.output_zip = path if path.suffix == '.zip' else path.with_suffix('.zip')
+                self.output_dir = self.output_zip.parent
+            else:
+                name = output_name if output_name.endswith('.zip') else f"{output_name}.zip"
+                self.output_zip = self.output_dir / name
         else:
             self.output_zip = self.output_dir / f"{self.input_path.stem}_frames.zip"
         
         self.temp_dir = self.output_dir / f"{self.input_path.stem}_temp"
 
     def interactive_setup(self):
-        """Guide the user through setup interactively."""
         Display.show_header()
         
-        # 1. 选择mp4文件
         video_files = sorted(list(self.input_dir.glob("*.mp4")))
         if not video_files:
             raise FileNotFoundError(f"在 {self.input_dir} 文件夹中没有找到 .mp4 文件")
         
         self.input_path = Display.ask_file_selection(video_files)
         
-        # 2. 一秒抽出几帧
         self.fps = Display.ask_fps()
             
-        # 3. 导出命名
         default_out = f"{self.input_path.stem}_frames.zip"
         output_name = Display.ask_output_name(default_out)
         self._set_output_path(output_name)
 
-    def process(self, keep_temp: bool = False):
-        """Execute the full conversion process."""
+    def process(self, keep_temp: bool = False, no_zip: bool = False):
         if not self.input_path:
             self.interactive_setup()
             
@@ -87,28 +91,34 @@ class VideoConverter:
         if not hasattr(self, 'temp_dir'):
             self.temp_dir = self.output_dir / f"{self.input_path.stem}_temp"
 
-        # If we just did interactive setup, the header is already shown
-        if len(sys.argv) > 1:
+        if len(sys.argv) > 1 and not no_zip:
             Display.show_header()
             
-        Display.show_video_info(self.input_path, self.output_zip, self.fps or 1.0)
+        if not no_zip:
+            Display.show_video_info(self.input_path, self.output_zip, self.fps or 1.0)
         
         try:
-            frames = self._extract_frames()
+            frames = self._extract_frames(show_progress=not no_zip)
             if frames:
-                self._create_zip(frames)
-                if not keep_temp:
-                    self._cleanup()
-                Display.show_success(self.output_zip)
+                if not no_zip:
+                    self._create_zip(frames)
+                    if not keep_temp:
+                        self._cleanup()
+                    Display.show_success(self.output_zip)
+                else:
+                    print(f"TEMP_DIR:{self.temp_dir}")
             else:
-                Display.show_error("没有提取到任何帧。")
+                if not no_zip:
+                    Display.show_error("没有提取到任何帧。")
         except Exception as e:
-            Display.show_error(str(e))
+            if not no_zip:
+                Display.show_error(str(e))
+            else:
+                print(f"ERROR:{e}", file=sys.stderr)
             self._cleanup()
             sys.exit(1)
 
-    def _extract_frames(self) -> List[Path]:
-        """Extract frames from video based on FPS."""
+    def _extract_frames(self, show_progress: bool = True) -> List[Path]:
         self.temp_dir.mkdir(exist_ok=True, parents=True)
         
         cap = cv2.VideoCapture(str(self.input_path))
@@ -118,7 +128,6 @@ class VideoConverter:
         v_fps = cap.get(cv2.CAP_PROP_FPS)
         v_total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         
-        # Calculate interval based on target FPS
         target_fps = self.fps or 1.0
         interval = max(1, int(v_fps / target_fps))
         target_count = v_total // interval
@@ -127,9 +136,27 @@ class VideoConverter:
         count = 0
         saved = 0
         
-        with Display.create_progress() as progress:
-            task = progress.add_task("[cyan]正在提取视频帧...", total=target_count)
-            
+        if show_progress:
+            with Display.create_progress() as progress:
+                task = progress.add_task("[cyan]正在提取视频帧...", total=target_count)
+                
+                while True:
+                    ret, frame = cap.read()
+                    if not ret:
+                        break
+                    
+                    if count % interval == 0:
+                        out_path = self.temp_dir / f"frame_{saved:05d}.png"
+                        result, buf = cv2.imencode(".png", frame)
+                        if result:
+                            with open(out_path, "wb") as f:
+                                f.write(buf)
+                        frame_paths.append(out_path)
+                        saved += 1
+                        progress.update(task, advance=1)
+                    
+                    count += 1
+        else:
             while True:
                 ret, frame = cap.read()
                 if not ret:
@@ -137,10 +164,15 @@ class VideoConverter:
                 
                 if count % interval == 0:
                     out_path = self.temp_dir / f"frame_{saved:05d}.png"
-                    cv2.imwrite(str(out_path), frame)
+                    result, buf = cv2.imencode(".png", frame)
+                    if result:
+                        with open(out_path, "wb") as f:
+                            f.write(buf)
                     frame_paths.append(out_path)
                     saved += 1
-                    progress.update(task, advance=1)
+                    
+                    progress_val = int((saved / target_count) * 100)
+                    print(f"PROGRESS:{progress_val}", flush=True)
                 
                 count += 1
                 
@@ -148,7 +180,6 @@ class VideoConverter:
         return frame_paths
 
     def _create_zip(self, files: List[Path]):
-        """Compress extracted PNGs into a zip archive."""
         with Display.create_progress() as progress:
             task = progress.add_task("[magenta]正在打包 ZIP 文件...", total=len(files))
             
@@ -158,16 +189,21 @@ class VideoConverter:
                     progress.update(task, advance=1)
 
     def _cleanup(self):
-        """Remove temporary frame directory."""
         if hasattr(self, 'temp_dir') and self.temp_dir.exists():
             shutil.rmtree(self.temp_dir)
 
 def main():
+    if sys.platform == "win32":
+        import os
+        os.environ["PYTHONIOENCODING"] = "utf-8"
+
     parser = argparse.ArgumentParser(description="MP4 to PNG Zip Converter")
     parser.add_argument("input", nargs="?", help="Video filename in 'video/' or direct path")
     parser.add_argument("-o", "--output", help="Output filename (saved in 'output/')")
     parser.add_argument("-f", "--fps", type=float, help="Frames per second to extract")
     parser.add_argument("-k", "--keep", action="store_true", help="Keep temporary PNG files")
+    parser.add_argument("--no-zip", action="store_true", help="Only extract frames, do not create ZIP")
+    parser.add_argument("--output-dir", help="Directory for temporary and final output")
     
     args = parser.parse_args()
     
@@ -175,9 +211,10 @@ def main():
         converter = VideoConverter(
             input_name=args.input,
             output_name=args.output,
-            fps=args.fps
+            fps=args.fps,
+            output_dir=args.output_dir
         )
-        converter.process(keep_temp=args.keep)
+        converter.process(keep_temp=args.keep, no_zip=args.no_zip)
     except Exception as e:
         Display.show_error(str(e))
         sys.exit(1)

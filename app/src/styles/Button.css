@@ -1,0 +1,59 @@
+.button {
+	padding: 0.75rem 1.5rem;
+	border-radius: 0.5rem;
+	font-weight: 500;
+	transition: all 0.2s;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	border: none;
+	cursor: pointer;
+}
+
+.button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.buttonPrimary {
+	background-color: #ff8c00;
+	color: white;
+}
+
+.buttonPrimary:hover:not(:disabled) {
+	background-color: rgba(255, 140, 0, 0.9);
+}
+
+.buttonPrimary:active:not(:disabled) {
+	transform: scale(0.95);
+}
+
+.buttonSecondary {
+	background-color: #333;
+	color: white;
+}
+
+.buttonSecondary:hover:not(:disabled) {
+	background-color: #444;
+}
+
+.buttonSecondary:active:not(:disabled) {
+	transform: scale(0.95);
+}
+
+.buttonGhost {
+	background-color: transparent;
+	color: #d1d5db;
+}
+
+.buttonGhost:hover:not(:disabled) {
+	background-color: #2a2a2a;
+	color: white;
+}
+
+.buttonIcon {
+	width: 1.25rem;
+	height: 1.25rem;
+	filter: brightness(0) invert(1);
+}

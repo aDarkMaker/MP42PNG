@@ -1,0 +1,112 @@
+.sidebar {
+	width: 30%;
+	min-width: 200px;
+	max-width: 250px;
+	flex-shrink: 0;
+	background-color: #242424;
+	border-right: 1px solid #333;
+	display: flex;
+	flex-direction: column;
+	user-select: none;
+}
+
+.logoSection {
+	padding: 0.8rem;
+}
+
+.logoContainer {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.logoImage {
+	width: 2.5rem;
+	height: 2.5rem;
+}
+
+.logoTitle {
+	font-size: 1.125rem;
+	font-weight: 700;
+	color: #ff8c00;
+}
+
+.logoSubtitle {
+	font-size: 0.75rem;
+	color: #9ca3af;
+}
+
+.nav {
+	flex: 1;
+	padding-top: 1rem;
+	padding-bottom: 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.navButton {
+	width: 100%;
+	text-align: left;
+	padding: 0.75rem 1rem;
+	border-radius: 0.5rem;
+	transition: all 0.2s;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	cursor: pointer;
+	border: none;
+	background: transparent;
+}
+
+.navButton:hover {
+	background-color: #2a2a2a;
+	color: white;
+}
+
+.navButtonActive {
+	background-color: rgba(255, 140, 0, 0.2);
+	color: #ff8c00;
+}
+
+.navButtonInactive {
+	color: #d1d5db;
+}
+
+.navIcon {
+	width: 1.25rem;
+	height: 1.25rem;
+	transition: transform 0.2s;
+	opacity: 0.7;
+}
+
+.navButton:hover .navIcon {
+	transform: scale(1.1);
+}
+
+.navButtonActive .navIcon {
+	opacity: 1;
+	filter: brightness(1.25);
+}
+
+.navContent {
+	flex: 1;
+}
+
+.navName {
+	font-weight: 500;
+}
+
+.navDescription {
+	font-size: 0.75rem;
+	opacity: 0.7;
+	margin-top: 0.125rem;
+}
+
+.footer {
+	padding: 1rem;
+	border-top: 1px solid #333;
+	font-size: 0.75rem;
+	color: #6b7280;
+	text-align: center;
+}

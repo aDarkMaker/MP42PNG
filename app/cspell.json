@@ -1,23 +1,28 @@
 {
-    "ignorePaths": [
-        ".venv/*"
-    ],
-    "words": [
-        "arcname",
-        "cdylib",
-        "imwrite",
-        "mdurl",
-        "numpy",
-        "opencv",
-        "pycache",
-        "pygments",
-        "qmark",
-        "rlib",
-        "serde",
-        "staticlib",
-        "tauri",
-        "tqdm",
-        "venv",
-        "wcwidth"
-    ]
+	"ignorePaths": [
+		".venv/*"
+	],
+	"words": [
+		"arcname",
+		"Buding",
+		"cdylib",
+		"imwrite",
+		"mdurl",
+		"monkeyc",
+		"numpy",
+		"opencv",
+		"pycache",
+		"pygments",
+		"qmark",
+		"quicktime",
+		"rlib",
+		"serde",
+		"staticlib",
+		"tauri",
+		"topbar",
+		"tqdm",
+		"unlisten",
+		"venv",
+		"wcwidth"
+	]
 }

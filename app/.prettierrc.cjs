@@ -19,4 +19,5 @@ module.exports = {
 	htmlWhitespaceSensitivity: 'css',
 	vueIndentScriptAndStyle: false,
 	endOfLine: 'lf',
+    ignorePath: '*.lock'
 };

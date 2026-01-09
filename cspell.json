@@ -4,13 +4,16 @@
     ],
     "words": [
         "arcname",
+        "imencode",
         "imwrite",
         "mdurl",
         "numpy",
         "opencv",
         "pycache",
         "pygments",
+        "PYTHONIOENCODING",
         "qmark",
+        "tofile",
         "tqdm",
         "venv",
         "wcwidth"

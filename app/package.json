@@ -9,11 +9,15 @@
 		"build": "bun run build.ts"
 	},
 	"dependencies": {
+		"@tauri-apps/api": "^2",
+		"@tauri-apps/plugin-dialog": "^2",
+		"@tauri-apps/plugin-fs": "^2",
 		"bun-plugin-tailwind": "^0.0.15",
 		"cspell": "^9.4.0",
 		"prettier": "^3.7.4",
 		"react": "^19",
 		"react-dom": "^19",
+		"root": "^3.2.0",
 		"tailwindcss": "^4.1.11"
 	},
 	"devDependencies": {

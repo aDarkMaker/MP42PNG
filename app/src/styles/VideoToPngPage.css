@@ -1,0 +1,327 @@
+.page {
+	max-width: 100%;
+	width: 100%;
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	overflow-x: hidden;
+	animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+	from { opacity: 0; transform: translateY(10px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+
+.header {
+	margin-bottom: 2rem;
+	user-select: none;
+}
+
+.title {
+	font-size: 1.875rem;
+	font-weight: 500;
+	color: white;
+}
+
+.description {
+	color: #9ca3af;
+}
+
+.dropZone {
+	border: 2px dashed rgba(255, 140, 0, 0.3);
+	border-radius: 1rem;
+	padding: 3rem;
+	text-align: center;
+	cursor: pointer;
+	transition: all 0.3s;
+	background-color: rgba(36, 36, 36, 0.5);
+	user-select: none;
+	min-width: 0;
+	max-width: 100%;
+}
+
+.dropZone:hover {
+	border-color: #ff8c00;
+}
+
+.dropTitle {
+	font-size: 1.25rem;
+	font-weight: 600;
+	color: white;
+	margin-bottom: 0.5rem;
+}
+
+.dropSubtitle {
+	color: #9ca3af;
+}
+
+.fileInput {
+	display: none;
+}
+
+.section {
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+	animation: slideIn 0.4s ease-out;
+	transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.section.fadeOut {
+	opacity: 0;
+	transform: translateY(-10px);
+}
+
+@keyframes slideIn {
+	from { opacity: 0; transform: translateX(20px); }
+	to { opacity: 1; transform: translateX(0); }
+}
+
+.card {
+	background-color: #242424;
+	border-radius: 1rem;
+	padding: 1.5rem;
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+	min-width: 0;
+	max-width: 100%;
+}
+
+.cardTitle {
+	font-size: 1.125rem;
+	font-weight: 600;
+	color: white;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.videoName {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	min-width: 0;
+	flex: 1;
+}
+
+.cardIcon {
+	width: 1.25rem;
+	height: 1.25rem;
+}
+
+.videoPreview {
+	display: flex;
+	gap: 1.5rem;
+	align-items: flex-start;
+	min-width: 0;
+	max-width: 100%;
+}
+
+.video {
+	max-width: 100%;
+	width: 100%;
+	height: auto;
+	border-radius: 0.5rem;
+	background-color: black;
+}
+
+.form {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.formGroup {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.formLabel {
+	display: flex;
+	align-items: center;
+	justify-content: start;
+	width: 15%;
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: #d1d5db;
+}
+
+.formHint {
+	font-size: 0.75rem;
+	color: #6b7280;
+	margin-left: 0.5rem;
+}
+
+.formInput {
+	width: 100%;
+	min-width: 0;
+	max-width: 100%;
+	padding: 0.5rem 1rem;
+	background-color: #1a1a1a;
+	border: 1px solid #333;
+	border-radius: 0.5rem;
+	color: white;
+	transition: border-color 0.2s;
+}
+
+.formInput:focus {
+	outline: none;
+	border-color: #ff8c00;
+}
+
+.actions {
+	display: flex;
+	gap: 1rem;
+}
+
+.buttonFull {
+	flex: 1;
+}
+
+.converting {
+	background-color: #242424;
+	border-radius: 1rem;
+	padding: 3rem;
+	text-align: center;
+	animation: pulseIn 0.5s ease-out;
+}
+
+@keyframes pulseIn {
+	from { opacity: 0; scale: 0.95; }
+	to { opacity: 1; scale: 1; }
+}
+
+.spinner {
+	width: 4rem;
+	height: 4rem;
+	margin: 0 auto 1.5rem;
+	border: 4px solid #ff8c00;
+	border-top-color: transparent;
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.convertingTitle {
+	font-size: 1.25rem;
+	font-weight: 600;
+	color: white;
+	margin-bottom: 0.5rem;
+}
+
+.convertingText {
+	color: #9ca3af;
+}
+
+.progressContainer {
+	max-width: 28rem;
+	margin: 0 auto;
+}
+
+.progressBar {
+	width: 100%;
+	background-color: #1a1a1a;
+	border-radius: 9999px;
+	height: 0.75rem;
+	overflow: hidden;
+}
+
+.progressFill {
+	height: 100%;
+	background: linear-gradient(to right, #ff8c00, #ffa500);
+	transition: width 0.3s;
+	border-radius: 9999px;
+}
+
+.progressText {
+	font-size: 0.875rem;
+	color: #9ca3af;
+	margin-top: 0.5rem;
+}
+
+.successContent {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 2rem 0;
+	text-align: center;
+	animation: scaleUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes scaleUp {
+	from { opacity: 0; transform: scale(0.9); }
+	to { opacity: 1; transform: scale(1); }
+}
+
+.successIcon {
+	width: 4rem;
+	height: 4rem;
+	background-color: rgba(34, 197, 94, 0.2);
+	color: #22c55e;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 2rem;
+	margin-bottom: 1.5rem;
+}
+
+.previewGrid {
+	background-color: #1a1a1a;
+	border-radius: 0.5rem;
+	padding: 1rem;
+	margin-bottom: 1.5rem;
+}
+
+.previewList {
+	display: flex;
+	gap: 0.5rem;
+	overflow-x: auto;
+	padding-bottom: 0.5rem;
+}
+
+.previewItem {
+	flex-shrink: 0;
+	height: 10rem;
+	background-color: #333;
+	border-radius: 0.5rem;
+	overflow: hidden;
+}
+
+.previewImg {
+	height: 100%;
+	width: auto;
+	display: block;
+}
+
+.previewMore {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	height: 10rem;
+	padding: 0 2rem;
+	background-color: #242424;
+	border: 1px dashed #444;
+	border-radius: 0.5rem;
+	color: #9ca3af;
+	font-size: 0.875rem;
+}
+
+@keyframes pulse {
+	0%, 100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.5;
+	}
+}

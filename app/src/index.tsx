@@ -3,39 +3,19 @@ import index from './index.html';
 
 const server = serve({
 	routes: {
-		// Serve index.html for all unmatched routes.
+		// 为所有未匹配的路由提供 index.html（SPA 支持）
 		'/*': index,
 
-		'/api/hello': {
-			async GET(req) {
-				return Response.json({
-					message: 'Hello, world!',
-					method: 'GET',
-				});
-			},
-			async PUT(req) {
-				return Response.json({
-					message: 'Hello, world!',
-					method: 'PUT',
-				});
-			},
-		},
-
-		'/api/hello/:name': async (req) => {
-			const name = req.params.name;
-			return Response.json({
-				message: `Hello, ${name}!`,
-			});
-		},
+		// API 路由预留区域
+		// TODO: 在这里添加与 Python 后端通信的 API
 	},
 
 	development: process.env.NODE_ENV !== 'production' && {
-		// Enable browser hot reloading in development
+		// 开发环境启用热更新
 		hmr: true,
-
-		// Echo console logs from the browser to the server
+		// 在服务器上显示浏览器控制台日志
 		console: true,
 	},
 });
 
-console.log(`🚀 Server running at ${server.url}`);
+console.log(`🚀 MP42PNG Server running at ${server.url}`);
