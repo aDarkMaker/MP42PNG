@@ -13,6 +13,26 @@
 		"fs:allow-mkdir",
 		"fs:allow-write-file",
 		"fs:allow-read-file",
-		"fs:allow-home-read-recursive"
+		"fs:allow-home-read-recursive",
+		"shell:allow-spawn",
+		"shell:allow-execute",
+		{
+			"identifier": "shell:allow-spawn",
+			"allow": [
+				{
+					"name": "binaries/main",
+					"cmd": "binaries/main"
+				}
+			]
+		},
+		{
+			"identifier": "shell:allow-execute",
+			"allow": [
+				{
+					"name": "binaries/main",
+					"cmd": "binaries/main"
+				}
+			]
+		}
 	]
 }

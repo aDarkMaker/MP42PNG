@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
-use tauri::{Emitter, Manager};
+use std::path::Path;
+use tauri::Emitter;
 use walkdir::WalkDir;
-use tokio::io::AsyncBufReadExt;
+use tauri_plugin_shell::ShellExt;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ConversionConfig {
@@ -26,84 +26,66 @@ async fn convert_video(
     app: tauri::AppHandle,
     config: ConversionConfig,
 ) -> Result<ConversionResult, String> {
-    let main_py = find_main_py(&app).ok_or_else(|| "找不到 main.py 文件".to_string())?;
+    let sidecar_command = app.shell()
+        .sidecar("main")
+        .map_err(|e| format!("创建 Sidecar 失败: {}", e))?
+        .args([
+            &config.input_path,
+            "-f", &config.fps.to_string(),
+            "-o", &config.output_name,
+            "--no-zip"
+        ]);
 
-    let output_dir = main_py.parent().unwrap().join("output");
-    std::fs::create_dir_all(&output_dir).map_err(|e| format!("创建输出目录失败: {}", e))?;
-    
-    let python_cmd = if cfg!(target_os = "windows") {
-        "python"
-    } else {
-        "python3"
-    };
-
-    let mut cmd = tokio::process::Command::new(python_cmd);
-    cmd.arg(main_py.to_string_lossy().as_ref())
-        .arg(&config.input_path)
-        .arg("-f")
-        .arg(config.fps.to_string())
-        .arg("-o")
-        .arg(&config.output_name)
-        .arg("--no-zip")
-        .arg("--output-dir")
-        .arg(output_dir.to_string_lossy().as_ref())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped());
-
-    log::info!("执行命令: {:?}", cmd);
-
-    let mut child = cmd.spawn()
-        .map_err(|e| format!("启动 Python 脚本失败: {}", e))?;
-
-    let stdout = child.stdout.take().unwrap();
-    let stderr = child.stderr.take().unwrap();
-    let mut stdout_reader = tokio::io::BufReader::new(stdout).lines();
-    let mut stderr_reader = tokio::io::BufReader::new(stderr).lines();
+    let (mut rx, mut _child) = sidecar_command
+        .spawn()
+        .map_err(|e| format!("启动 Sidecar 失败: {}", e))?;
 
     let app_handle = app.clone();
-    
     let stdout_task = tokio::spawn(async move {
         let mut temp_dir = None;
-        while let Ok(Some(line)) = stdout_reader.next_line().await {
-            log::info!("Python stdout: {}", line);
-            if line.starts_with("PROGRESS:") {
-                if let Ok(p) = line.replace("PROGRESS:", "").parse::<u32>() {
-                    let _ = app_handle.emit("conversion-progress", p);
+        let mut unprocessed_text = String::new();
+
+        while let Some(event) = rx.recv().await {
+            match event {
+                tauri_plugin_shell::process::CommandEvent::Stdout(bytes) => {
+                    let text = String::from_utf8_lossy(&bytes);
+                    unprocessed_text.push_str(&text);
+                    
+                    while let Some(pos) = unprocessed_text.find('\n') {
+                        let line = unprocessed_text[..pos].trim().to_string();
+                        unprocessed_text = unprocessed_text[pos + 1..].to_string();
+                        
+                        if line.starts_with("PROGRESS:") {
+                            if let Ok(p) = line.replace("PROGRESS:", "").trim().parse::<u32>() {
+                                let _ = app_handle.emit("conversion-progress", p);
+                            }
+                        } else if line.starts_with("TEMP_DIR:") {
+                            temp_dir = Some(line.replace("TEMP_DIR:", "").trim().to_string());
+                        }
+                    }
                 }
-            } else if line.starts_with("TEMP_DIR:") {
-                temp_dir = Some(line.replace("TEMP_DIR:", "").trim().to_string());
+                tauri_plugin_shell::process::CommandEvent::Stderr(bytes) => {
+                    let err_text = String::from_utf8_lossy(&bytes);
+                    log::error!("Sidecar Stderr: {}", err_text);
+                }
+                _ => {}
             }
         }
+
+        // 处理最后可能没有换行符的一行
+        let final_line = unprocessed_text.trim();
+        if !final_line.is_empty() {
+            if final_line.starts_with("TEMP_DIR:") {
+                temp_dir = Some(final_line.replace("TEMP_DIR:", "").trim().to_string());
+            }
+        }
+        
         temp_dir
     });
 
-    let stderr_task = tokio::spawn(async move {
-        let mut error = String::new();
-        while let Ok(Some(line)) = stderr_reader.next_line().await {
-            log::error!("Python stderr: {}", line);
-            error.push_str(&line);
-            error.push('\n');
-        }
-        error
-    });
-
-    let status = child.wait().await
-        .map_err(|e| format!("等待进程结束失败: {}", e))?;
-
     let temp_dir_captured = stdout_task.await.map_err(|e| e.to_string())?;
-    let error_msg = stderr_task.await.map_err(|e| e.to_string())?;
 
-    if !status.success() {
-        return Ok(ConversionResult {
-            success: false,
-            temp_dir: None,
-            frame_paths: None,
-            total_frames: None,
-            error: Some(format!("转换失败: {}", error_msg)),
-        });
-    }
-
-    let temp_path_str = temp_dir_captured.ok_or_else(|| "Python 脚本未返回临时目录".to_string())?;
+    let temp_path_str = temp_dir_captured.ok_or_else(|| "转换失败: Sidecar 未返回临时目录".to_string())?;
     let temp_path = Path::new(&temp_path_str);
 
     let mut frame_paths = Vec::new();
@@ -191,64 +173,15 @@ async fn cleanup_temp(temp_dir: String) -> Result<(), String> {
     Ok(())
 }
 
-fn find_main_py(app: &tauri::AppHandle) -> Option<PathBuf> {
-    if let Ok(resource_dir) = app.path().resource_dir() {
-        let main_py = resource_dir.join("main.py");
-        if main_py.exists() {
-            return Some(main_py);
-        }
-    }
-    
-    if let Ok(current_dir) = std::env::current_dir() {
-        let mut search_dir = current_dir.clone();
-        
-        for _ in 0..3 {
-            let main_py = search_dir.join("main.py");
-            if main_py.exists() {
-                return Some(main_py);
-            }
-            
-            if let Some(parent) = search_dir.parent() {
-                let main_py = parent.join("main.py");
-                if main_py.exists() {
-                    return Some(main_py);
-                }
-                search_dir = parent.to_path_buf();
-            } else {
-                break;
-            }
-        }
-    }
-    
-    None
-}
-
 #[tauri::command]
 async fn get_video_info(app: tauri::AppHandle, video_path: String) -> Result<VideoInfo, String> {
-    let _main_py = find_main_py(&app).ok_or_else(|| "找不到 main.py 文件".to_string())?;
-    
-    let python_cmd = if cfg!(target_os = "windows") {
-        "python"
-    } else {
-        "python3"
-    };
-    
-    // 我们在 main.py 中已经有 cv2 了，直接写一个小脚本来获取信息
-    let script = format!(
-        "import cv2; cap = cv2.VideoCapture(r'{}'); \
-         fps = cap.get(cv2.CAP_PROP_FPS); \
-         total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)); \
-         dur = total / fps if fps > 0 else 0; \
-         print(f'{{dur}},{{fps}},{{total}}'); cap.release()",
-        video_path
-    );
-
-    let output = tokio::process::Command::new(python_cmd)
-        .arg("-c")
-        .arg(script)
+    let output = app.shell()
+        .sidecar("main")
+        .map_err(|e| format!("创建 Sidecar 失败: {}", e))?
+        .args(["--info", &video_path])
         .output()
         .await
-        .map_err(|e| format!("执行 Python 失败: {}", e))?;
+        .map_err(|e| format!("执行 Sidecar 失败: {}", e))?;
 
     if !output.status.success() {
         return Err(String::from_utf8_lossy(&output.stderr).to_string());
@@ -279,13 +212,6 @@ struct VideoInfo {
 pub fn run() {
     tauri::Builder::default()
     .setup(|app| {
-        if cfg!(debug_assertions) {
-        app.handle().plugin(
-            tauri_plugin_log::Builder::default()
-            .level(log::LevelFilter::Info)
-            .build(),
-        )?;
-        }
         app.handle().plugin(tauri_plugin_fs::init())?;
         app.handle().plugin(tauri_plugin_dialog::init())?;
         app.handle().plugin(tauri_plugin_shell::init())?;

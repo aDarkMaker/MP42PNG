@@ -4,10 +4,10 @@
 	"version": "0.1.0",
 	"identifier": "com.orange.vtp",
 	"build": {
-		"frontendDist": "../build",
+		"frontendDist": "../dist",
 		"devUrl": "http://localhost:3000",
 		"beforeDevCommand": "bun dev",
-		"beforeBuildCommand": "bun build"
+		"beforeBuildCommand": "bun run build"
 	},
 	"app": {
 		"withGlobalTauri": true,
@@ -21,7 +21,7 @@
 			}
 		],
 		"security": {
-			"csp": "default-src 'self'; img-src 'self' asset: https://asset.localhost; connect-src 'self' ipc: http://localhost:*",
+			"csp": "default-src 'self'; img-src 'self' asset: https://asset.localhost blob:; media-src 'self' asset: https://asset.localhost blob:; connect-src 'self' ipc: http://localhost:*",
 			"assetProtocol": {
 				"enable": true,
 				"scope": ["**"]
@@ -31,9 +31,9 @@
 	"bundle": {
 		"active": true,
 		"targets": "all",
-		"resources": [
-			"../../main.py",
-			"../../requirements.txt"
+		"resources": [],
+		"externalBin": [
+			"binaries/main"
 		],
 		"icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"]
 	}

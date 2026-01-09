@@ -1,29 +1,34 @@
-# MP42PNG
+<div align="center">
+  <img src="./app/src-tauri/icons/icon.ico" width="160" alt="MP42PNG logo" />
 
-> MP4 TO PNG.ZIP
+  # ArtBox
+  [![Tauri](https://img.shields.io/badge/Developed%20with-Tauri-blue?style=for-the-badge&logo=tauri)](https://tauri.app/)
+  ![Platform](https://img.shields.io/badge/platform-Windows-blue?style=for-the-badge)
+  
+  **一秒12帧也才4K张图要产，洒洒水啦~**
+  <br />
+
+</div>
 
 ---
 
-### 1. 环境准备
-```bash
-# 创建并激活虚拟环境
-uv venv .venv
-source .venv/bin/activate # macOS/Linux
-.venv\Scripts\activate    # Windows
+## 1. 写在前面
 
-# 安装依赖
-uv pip install -r requirements.txt
-```
+> 本软件只是为了简化各位画师/手书制作者在日常创作流程中的抽帧工作……</br>
+> 如果您有更好的处理方案，欢迎指导！
 
-### 2. 准备视频
-```bash
-mkdir video
-```
-将你的 `.mp4` 文件放入 `video` 文件夹中。
+- 本工具只是日常生活中的摸鱼之作，轻点骂！
 
-### 3. 开始转换
-```bash
-python main.py
-```
----
-*Created by Orange*
+## 2. 快速开始
+
+1. **下载安装包**：从下方的“下载渠道”中选择一个，下载最新的 `ArtBox_x.x.x_x64-setup.exe` 安装文件。
+2. **安装程序**：双击安装文件，并按照安装向导的提示完成安装。
+3. **运行程序**：安装完成后，从桌面快捷方式启动 `ArtBox` 即可。
+
+## 3. 下载方式
+
+- **[GitHub Releases](https://github.com/your-username/MP42PNG/releases)**: 侧边下载即可，暂未支持其他渠道~
+
+## 4. 功能介绍
+
+- **自定义抽帧：** 自定义帧数将Video打包成PNG的zip文件

@@ -48,8 +48,7 @@ class VideoConverter:
                     if not keep_temp:
                         self._cleanup()
                 else:
-                    # Output temp dir for Tauri to know where frames are
-                    print(f"TEMP_DIR:{self.temp_dir}")
+                    print(f"TEMP_DIR:{self.temp_dir}", flush=True)
             else:
                 raise ValueError("没有提取到任何帧。")
         except Exception as e:
