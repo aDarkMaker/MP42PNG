@@ -1,0 +1,18 @@
+{
+    "ignorePaths": [
+        ".venv/*"
+    ],
+    "words": [
+        "arcname",
+        "imwrite",
+        "mdurl",
+        "numpy",
+        "opencv",
+        "pycache",
+        "pygments",
+        "qmark",
+        "tqdm",
+        "venv",
+        "wcwidth"
+    ]
+}
